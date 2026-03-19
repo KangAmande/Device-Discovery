@@ -12,6 +12,10 @@ app.use(express.static('public'));
 
 const scanTime = 2 * 60 * 1000;
 
+const mdns = require("multicast-dns")();
+const findDevices = require("local-devices");
+const engine = require("./fingerprint-engine");
+
 const COMPANY_IDS = {
   0x0006: "Microsoft",
   0x000a: "Qualcomm",
@@ -98,6 +102,7 @@ const BLE_SERVICES = {
 
 console.log('Starting radar...');
 noble.on('stateChange', async(state) => {
+    console.log("Bluetooth state changed");
     if (state === 'poweredOn') {
         try{
             console.log('Scanning for devices...');
@@ -116,6 +121,7 @@ noble.on('stateChange', async(state) => {
 });
 
 noble.on('discover', (peripheral) => {
+    console.log("Discovered a device. Processing data...");
     const name = peripheral.advertisement.localName || 'Unknown Peripheral';
     const ID = peripheral.id || 'Unknown ID';
     const rssi = peripheral.rssi;
@@ -171,6 +177,46 @@ noble.on('discover', (peripheral) => {
     // Send the device data to the web UI in real-time
     io.emit('device-spotted', devicesData);
 });
+
+/**
+ * mdns.on("response", (response) => {
+    console.log("Received mDNS response with answers");
+    response.answers.forEach((answer) => {
+        if (answer.type === "PTR" || answer.type === "SRV") {
+            const networkDevice = {
+                id: answer.data,
+                name: answer.name.replace('._tcp.local', '').replace('._udp.local', ''),
+                category: 'Network Service',
+                connectionType: 'Wi-Fi/mDNS',
+                risk: 'Low',
+                rssi: -40
+            };
+            io.emit("device-spotted", networkDevice);
+        }
+    });
+});
+
+async function runNetworkAudit(){
+    console.log("Starting network ARP audit...");
+    const devices = await findDevices();
+    devices.forEach(device => {
+        io.emit('device-spotted', {
+            id: device.mac,
+            name: device.name !== '?' ? device.name : `Hidden IP (${device.ip})`,
+            category: 'IP Device',
+            connectionType: 'Ethernet/Wi-Fi',
+            risk: 'Inquiry Needed',
+            rssi: -60,
+            ip: device.ip
+        });
+    });
+
+}
+
+//setInterval(runNetworkAudit, 60000); // Run every 60 seconds
+runNetworkAudit(); // Initial run on startup
+ */
+
 
 server.listen(3000, () => {
     console.log('[\u{1F310}] Dashboard ready at http://localhost:3000');

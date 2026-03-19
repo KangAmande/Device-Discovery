@@ -1,4 +1,2 @@
-/BLE/node_modules
-/BLE/package-lock.json
-/Network-Discovery/node_modules
-/Network-Discovery/package-lock.json
+/BLE-Network-scans/node_modules
+/BLE-Network-scans/package-lock.json
