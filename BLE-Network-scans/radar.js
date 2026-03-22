@@ -13,7 +13,7 @@ app.use(express.static('public'));
 const scanTime = 2 * 60 * 1000;
 
 const mdns = require("multicast-dns")();
-const findDevices = require("local-devices");
+const { exec } = require('child_process');
 const engine = require("./fingerprint-engine");
 
 const COMPANY_IDS = {
@@ -196,43 +196,56 @@ mdns.on("response", (response) => {
 });
 
 let isAuditing = false;
-async function runNetworkAudit(){
+async function runNetworkAudit() {
     if (isAuditing) return;
     isAuditing = true;
-    console.log("Starting network ARP audit...");
-    try{
-        const devices = [
-            { name: 'Gateway', ip: '192.168.1.1', mac: '00:00:00:00:00:01' },
-            { name: 'Test-Device', ip: '192.168.1.50', mac: '00:00:00:00:00:02' }
-        ];
-        /**const devices = await findDevices();
-        const interestingDevices = devices.filter(d => d.name !== '?').slice(0, 10);
-        if (interestingDevices.length < 10) {
-            const anonymous = devices.filter(d => d.name === '?').slice(0, 10 - interestingDevices.length);
-            interestingDevices.push(...anonymous);
-        }*/
-        devices.forEach(device => {
-            io.emit('device-spotted', {
-                id: device.mac,
-                name: device.name !== '?' ? device.name : `Hidden IP (${device.ip})`,
-                category: 'IP Device',
-                connectionType: 'Ethernet/Wi-Fi',
-                risk: 'Inquiry Needed',
-                rssi: -60,
-                ip: device.ip
-            });
+
+    console.log("[\u{1F50E}] Reading System ARP Cache (Low Memory Mode)...");
+
+    // 'arp -a' is a native Windows command
+    exec('arp -a', (err, stdout, stderr) => {
+        if (err) {
+            isAuditing = false;
+            return console.error("ARP Error:", err);
+        }
+
+        const lines = stdout.split('\n');
+        let processedCount = 0;
+
+        lines.forEach(line => {
+            // Regex to find: [IP Address] [MAC Address] [Type]
+            // Matches patterns like: 192.168.1.1  00-11-22-33-44-55  dynamic
+            const match = line.match(/(\d+\.\d+\.\d+\.\d+)\s+([0-9a-f-]{17})/i);
+            
+            if (match && processedCount < 10) {
+                const ip = match[1];
+                const mac = match[2].replace(/-/g, ':').toLowerCase();
+                
+                // Skip broadcast/multicast addresses (ending in .255 or starting with 224/239)
+                if (ip.endsWith('.255') || ip.startsWith('224') || ip.startsWith('239')) return;
+
+                processedCount++;
+                
+                io.emit('device-spotted', {
+                    id: mac,
+                    name: `Network Node (${ip})`,
+                    category: 'Network Device',
+                    connectionType: 'ARP-Cache',
+                    ip: ip,
+                    lastSeen: Date.now()
+                });
+            }
         });
-    }catch (err) {
-        console.error("[\u274C] Audit Error:", err.message);
-    }finally {
+
+        console.log(`[\u2705] Audit Complete. Processed ${processedCount} devices from cache.`);
+        
         isAuditing = false;
-        //setTimeout(runNetworkAudit, 60000);
-    }
+
+        setTimeout(runNetworkAudit, 60000);
+    });
 }
 
 runNetworkAudit(); // Initial run on startup
-
-
 
 server.listen(3000, () => {
     console.log('[\u{1F310}] Dashboard ready at http://localhost:3000');
