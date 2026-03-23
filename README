@@ -1,0 +1,64 @@
+## Device Sentinel v2.0
+Unified BLE & Network Infrastructure Radar
+Device Sentinel is a high-performance, real-time hardware discovery and security auditing dashboard. It bridges the gap between physical Bluetooth proximity and local network infrastructure to identify "Shadow IoT" hardware and potential unauthorized tracking units.
+
+## Key Features
+Dual-Stack Discovery: Simultaneously monitors Bluetooth Low Energy (BLE) advertisements and local network ARP/mDNS traffic.
+
+Hardware Fingerprinting: Categorizes endpoints based on manufacturer OUI and advertising patterns.
+
+Proximity Tracking: Real-time RSSI signal strength visualization for physical device location.
+
+Automated Risk Assessment: Identifies unauthorized tracking hardware (e.g., AirTags, Tile) using behavioral analysis and persistent proximity logic.
+
+Optimized UI: Responsive, tactical dashboard built with Socket.io for sub-100ms state updates.
+
+## Technical Case Study: Engineering for Stability
+As an SDET project, the primary engineering focus was on resource optimization and system reliability in high-density environments.
+
+1. Solving the V8 Heap Limit (Memory Management)
+In initial stress tests, high-density radio environments caused a FATAL ERROR: JavaScript heap out of memory.
+
+The Problem: Recursive asynchronous scan collisions and event listener leaks in the mDNS/ARP modules.
+
+The Fix: * Implemented a Recursive Timeout pattern to ensure sequential execution and prevent concurrent memory spikes.
+
+Developed a Device TTL (Time-to-Live) cleanup routine to prune stale objects from the Node.js Map structure.
+
+Explicitly managed the memory heap using --max-old-space-size=4096.
+
+2. Transitioning to Passive Network Auditing
+Active subnet scanning created significant latency and excessive CPU overhead during discovery phases.
+
+The Optimization: Replaced active library-based pinging with Passive ARP Cache Parsing. By interfacing with native OS commands and utilizing Regex for string parsing, discovery speed increased by 95% with near-zero memory footprint.
+
+3. Native Windows Module Integration
+Successfully handled the complexities of compiling C++ native modules (@abandonware/noble) on Windows 11, including the configuration of node-gyp and interfacing with the WinRT Bluetooth stack.
+
+## The Stack
+Backend: Node.js (v18+)
+Real-time Communication: Socket.io
+Hardware Interface: @abandonware/noble (BLE), Native Child Processes (ARP)
+Frontend: Vanilla JavaScript, CSS Grid (Optimized for low-latency rendering)
+
+## Getting Started
+Prerequisites
+Node.js 18.x or higher
+Visual Studio Build Tools (for native module compilation)
+Bluetooth 4.0+ Adapter
+
+## Installation
+
+Clone the repository:
+Bash
+git clone 
+cd device-sentinel
+
+Clean and Install Dependencies:
+PowerShell
+Remove-Item -Recurse -Force node_modules
+npm install
+
+Run the Application:
+Bash
+node --max-old-space-size=4096 server.js

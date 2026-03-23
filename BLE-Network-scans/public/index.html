@@ -1,97 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="/socket.io/socket.io.js"></script>
-    <title>BLE Hunting Dashboard</title>
-    <style>
-        body { 
-            background: #0a0a0b; 
-            color: #00ff41; 
-            font-family: 'Courier New', monospace; 
-            padding: 20px; 
-        }
-        h1 { 
-            border-bottom: 2px solid #00ff41; 
-            padding-bottom: 10px; 
-            text-shadow: 0 0 10px #00ff41; 
-        }
-        .device-card { 
-            background: #16161a; 
-            border: 1px solid #333; 
-            padding: 15px; 
-            margin: 10px 0;
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-left: 5px solid #00ff41; 
-            transition: 0.3s;
-        }
-        .signal-meter { 
-            width: 100px; 
-            height: 10px; 
-            background: #222; 
-            border-radius: 5px; 
-            overflow: hidden; 
-        }
-        .signal-fill { 
-            height: 100%; 
-            background: #00ff41; 
-            transition: width 0.5s; 
-        }
-        .meta { 
-            color: #bab7b7; 
-            font-size: 0.9em; 
-        }
-    </style>
+    <title>Device Hunter | Forensic Radar</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>BLE Hunting Dashboard</h1>
-    <div id="radar-log">
-        <p>Waiting for signals...</p>
-    </div>
-    
-    <script>
-        const socket = io();
-        const log = document.getElementById('radar-log');
-        const devices = {};
+    <header>
+        <div class="logo">DEVICE_HUNTER <span class="v">v2.0</span></div>
+        <div id="stats">
+            <span>TOTAL DEVICES: <b id="count">0</b></span>
+            <span>SYSTEM: <b class="status-ok">ONLINE</b></span>
+        </div>
+    </header>
 
-        socket.on('device-spotted', (deviceData) => {
-            if (deviceData.length === 0) {
-                log.innerHTML = '<p>No devices detected yet...</p>';
-                return;
-            }
-            else{
-                log.innerHTML = '';
-                devices[deviceData.id] = deviceData;
-                renderDevices();
-            }
-        });
-        function renderDevices() {
-            log.innerHTML = Object.values(devices)
-                .sort((a, b) => b.rssi - a.rssi) // Strongest signals first
-                .map(d => `
-                    <div class="device-card">
-                        <div>
-                            <strong>${d.name}</strong> <span class="meta">[${d.id}]</span><br>
-                            <span class="meta">Device Type: ${d.appearance}</span><br>
-                            <span class="meta">Service Type: ${d.type}</span><br>
-                            <span class="meta">Last seen: ${d.lastSeen}</span><br>
-                            <span class="meta">Manufacturer: ${d.mfg}</span><br>
-                            <span class="meta">Raw Data: ${d.rawData}</span><br>
-                            <span class="meta">Privacy: ${d.privacy}</span>
-                        </div>
-                        <div>
-                            <div class="meta">Signal: ${d.rssi} dBm</div>
-                            <div class="signal-meter">
-                                <div class="signal-fill" style="width: ${Math.max(0, 100 + d.rssi)}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-        }
-        
-    </script>
-   
+    <main id="radar-grid">
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="ui-logic.js"></script>
 </body>
 </html>

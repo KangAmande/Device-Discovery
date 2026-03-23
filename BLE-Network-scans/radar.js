@@ -122,11 +122,11 @@ noble.on('stateChange', async(state) => {
 
 noble.on('discover', (peripheral) => {
     console.log("Discovered a device. Processing data...");
-    const name = peripheral.advertisement.localName || 'Unknown Peripheral';
-    const ID = peripheral.id || 'Unknown ID';
+    const name = peripheral.advertisement.localName;
+    const ID = peripheral.id;
     const rssi = peripheral.rssi;
     const appearance = peripheral.advertisement.appearance;
-    const appearanceDesc = appearanceMap[appearance] || `Unknown type`;
+    const appearanceDesc = appearanceMap[appearance];
     const address = peripheral.address !== 'unknown' ? peripheral.address : peripheral.id;
     const privacyLeak = peripheral.advertisement.localName ? 'Data Leak : Name Public' : 'Private';
     const mfgData = peripheral.advertisement.manufacturerData;
@@ -136,17 +136,17 @@ noble.on('discover', (peripheral) => {
   
     // Map the UUIDs to their names
     const knownServices = serviceUuids
-        .map(uuid => BLE_SERVICES[uuid.toLowerCase()] || `Unknown Service (${uuid})`)
+        .map(uuid => BLE_SERVICES[uuid.toLowerCase()] || '')
         .join(', ');
 
-    let mfgName = "Unknown";
+    let mfgName = "";
     
     // Check if mfgData exists AND has at least 2 bytes before reading
     if (mfgData && mfgData.length >= 2) {
 
         hexString = mfgData.toString('hex');
         const companyId = mfgData.readUInt16LE(0);
-        mfgName = COMPANY_IDS[companyId] || `Unknown (0x${companyId.toString(16).padStart(4, '0')})`;
+        mfgName = COMPANY_IDS[companyId] || '';
     }
     console.log('------------------------------------------------------------');
     console.log(`Device Name: ${name}`);
@@ -167,7 +167,7 @@ noble.on('discover', (peripheral) => {
         address: address,
         rssi: rssi,
         appearance: appearanceDesc,
-        type: knownServices || 'Unknown',
+        type: knownServices,
         lastSeen: new Date().toLocaleTimeString(),
         mfg: mfgName,
         rawData: hexString,
@@ -188,7 +188,8 @@ mdns.on("response", (response) => {
                 category: 'Network Service',
                 connectionType: 'Wi-Fi/mDNS',
                 risk: 'Low',
-                rssi: -40
+                rssi: -40,
+                lastSeen: new Date().toLocaleTimeString()
             };
             io.emit("device-spotted", networkDevice);
         }
@@ -232,7 +233,7 @@ async function runNetworkAudit() {
                     category: 'Network Device',
                     connectionType: 'ARP-Cache',
                     ip: ip,
-                    lastSeen: Date.now()
+                    lastSeen: new Date().toLocaleTimeString()
                 });
             }
         });
